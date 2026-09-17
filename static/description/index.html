@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Data Sentinel - Automated Nextcloud Backup & Disaster Recovery</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b; background: #f8fafc; margin: 0; padding: 0; }
+        .hero { background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); color: #ffffff; padding: 60px 30px; text-align: center; border-radius: 0 0 24px 24px; }
+        .hero h1 { font-size: 38px; font-weight: 800; margin: 0 0 12px; letter-spacing: -0.5px; }
+        .hero p { font-size: 18px; color: #93c5fd; max-width: 700px; margin: 0 auto; line-height: 1.6; }
+        .container { max-width: 1000px; margin: -40px auto 60px; padding: 0 20px; }
+        .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin-bottom: 40px; }
+        .card { background: #ffffff; border-radius: 16px; padding: 30px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01); border: 1px solid #e2e8f0; transition: transform 0.2s ease; }
+        .card:hover { transform: translateY(-4px); }
+        .card h3 { font-size: 20px; color: #0f172a; margin-top: 0; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
+        .card p { color: #64748b; font-size: 14px; line-height: 1.6; margin: 0; }
+        .badge { display: inline-block; background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 9999px; font-size: 12px; font-weight: 600; margin-bottom: 10px; }
+        .feature-box { background: #ffffff; border-radius: 16px; padding: 35px; border: 1px solid #e2e8f0; margin-bottom: 30px; }
+        .feature-box h2 { font-size: 24px; color: #0f172a; margin-top: 0; }
+        .feature-list { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .feature-list li { color: #334155; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+        .feature-list li::before { content: "✓"; color: #0284c7; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="hero">
+        <span class="badge" style="background: rgba(255,255,255,0.15); color: #fff;">Enterprise Backup Engine</span>
+        <h1>Data Sentinel for Odoo</h1>
+        <p>Automated, secure, and zero-downtime backups of your PostgreSQL database, filestore, and custom addons directly to Nextcloud WebDAV.</p>
+    </div>
+
+    <div class="container">
+        <div class="card-grid">
+            <div class="card">
+                <span class="badge">Daily Midnight</span>
+                <h3>🌙 Full Instance Backup</h3>
+                <p>Complete disaster recovery archive containing raw Postgres SQL dump, entire Odoo filestore, all custom modules, and metadata manifest, automatically pushed to Nextcloud every night at 12:00 AM.</p>
+            </div>
+            <div class="card">
+                <span class="badge">Working Hours</span>
+                <h3>⚡ Timely Snapshots</h3>
+                <p>High-frequency lightweight snapshots (Database + Filestore) taken every 3 hours between 5:00 AM and 8:00 PM to minimize data loss windows in fast-paced production environments.</p>
+            </div>
+            <div class="card">
+                <span class="badge">Zero Hardcoding</span>
+                <h3>⚙️ Dynamic Settings</h3>
+                <p>Full control over Nextcloud WebDAV endpoints, credentials, folder paths, backup intervals, hour windows, and retention days directly from the Odoo Settings interface.</p>
+            </div>
+        </div>
+
+        <div class="feature-box">
+            <h2>Complete Audit Trail &amp; Cloud Sync</h2>
+            <p style="color: #64748b; font-size: 15px; margin-bottom: 20px;">Every backup execution is logged in real-time with comprehensive stats and health tracking.</p>
+            <ul class="feature-list">
+                <li>Automated WebDAV directory creation</li>
+                <li>Streaming chunked upload to Nextcloud</li>
+                <li>Live "Test Nextcloud Connection" tool</li>
+                <li>Real-time file size &amp; duration metrics</li>
+                <li>On-demand manual backup triggers</li>
+                <li>One-click re-upload for pending archives</li>
+                <li>Automatic cloud &amp; local retention cleanup</li>
+                <li>Direct archive download from Odoo UI</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

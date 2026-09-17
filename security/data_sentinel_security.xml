@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="module_category_data_sentinel" model="ir.module.category">
+        <field name="name">Data Sentinel</field>
+        <field name="description">Manage automated and manual Nextcloud backups.</field>
+        <field name="sequence">50</field>
+    </record>
+
+    <record id="res_groups_privilege_data_sentinel" model="res.groups.privilege">
+        <field name="name">Data Sentinel</field>
+        <field name="sequence">1</field>
+        <field name="category_id" ref="module_category_data_sentinel"/>
+    </record>
+
+    <record id="group_data_sentinel_user" model="res.groups">
+        <field name="name">User (View Backups)</field>
+        <field name="privilege_id" ref="res_groups_privilege_data_sentinel"/>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <record id="group_data_sentinel_manager" model="res.groups">
+        <field name="name">Administrator (Full Control)</field>
+        <field name="privilege_id" ref="res_groups_privilege_data_sentinel"/>
+        <field name="implied_ids" eval="[(4, ref('group_data_sentinel_user')), (4, ref('base.group_system'))]"/>
+        <field name="user_ids" eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]"/>
+    </record>
+</odoo>

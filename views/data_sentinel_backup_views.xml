@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- List View -->
+    <record id="view_data_sentinel_backup_tree" model="ir.ui.view">
+        <field name="name">data.sentinel.backup.list</field>
+        <field name="model">data.sentinel.backup</field>
+        <field name="arch" type="xml">
+            <list string="Data Sentinel Backups" default_order="create_date desc" sample="1">
+                <field name="name" string="Backup Ref"/>
+                <field name="backup_type" widget="badge"
+                       decoration-info="backup_type == 'full'"
+                       decoration-primary="backup_type == 'timely'"
+                       decoration-warning="backup_type == 'manual'"/>
+                <field name="trigger_source" optional="show"/>
+                <field name="db_name" optional="show"/>
+                <field name="file_name" optional="hide"/>
+                <field name="file_size_display" string="Size"/>
+                <field name="start_time" string="Started"/>
+                <field name="duration_display" string="Duration"/>
+                <field name="nextcloud_uploaded" string="Cloud Sync" widget="boolean_toggle"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'success'"
+                       decoration-warning="state == 'running' or state == 'local_only'"
+                       decoration-danger="state == 'failed'"
+                       decoration-muted="state == 'draft'"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Form View -->
+    <record id="view_data_sentinel_backup_form" model="ir.ui.view">
+        <field name="name">data.sentinel.backup.form</field>
+        <field name="model">data.sentinel.backup</field>
+        <field name="arch" type="xml">
+            <form string="Data Sentinel Backup">
+                <header>
+                    <button name="action_run_backup" string="Run Backup Now" type="object"
+                            class="oe_highlight"
+                            invisible="state in ['running', 'success']"/>
+                    <button name="action_retry_upload" string="Upload to Nextcloud" type="object"
+                            class="btn-secondary"
+                            invisible="state not in ['local_only', 'failed'] or not local_path"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,running,success"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" string="Backup Reference"/>
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group string="Backup Parameters">
+                            <field name="backup_type" readonly="state != 'draft'"/>
+                            <field name="trigger_source" readonly="1"/>
+                            <field name="db_name" readonly="state != 'draft'"/>
+                            <field name="include_db" readonly="state != 'draft'"/>
+                            <field name="include_filestore" readonly="state != 'draft'"/>
+                            <field name="include_addons" readonly="state != 'draft'"
+                                   invisible="backup_type != 'full'"/>
+                        </group>
+                        <group string="Execution &amp; Cloud Destination">
+                            <field name="start_time" readonly="1"/>
+                            <field name="end_time" readonly="1"/>
+                            <field name="duration_display" readonly="1"/>
+                            <field name="file_name" readonly="1"/>
+                            <field name="file_size_display" readonly="1"/>
+                            <field name="nextcloud_uploaded" readonly="1"/>
+                            <field name="nextcloud_path" readonly="1"/>
+                            <field name="local_path" readonly="1" invisible="not local_path"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Execution Log" name="logs">
+                            <field name="log_details" widget="ace" options="{'mode': 'text'}" readonly="1"/>
+                        </page>
+                        <page string="Error Trace" name="errors" invisible="not error_details">
+                            <field name="error_details" widget="ace" options="{'mode': 'text'}" readonly="1"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Kanban View -->
+    <record id="view_data_sentinel_backup_kanban" model="ir.ui.view">
+        <field name="name">data.sentinel.backup.kanban</field>
+        <field name="model">data.sentinel.backup</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="state" sample="1">
+                <field name="id"/>
+                <field name="name"/>
+                <field name="backup_type"/>
+                <field name="state"/>
+                <field name="file_size_display"/>
+                <field name="start_time"/>
+                <field name="duration_display"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <strong class="text-primary"><field name="name"/></strong>
+                            <field name="backup_type" widget="badge"/>
+                        </div>
+                        <div class="text-muted small mb-1">
+                            <span><i class="fa fa-clock-o me-1"/>Started: <field name="start_time"/></span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-2 border-top pt-2">
+                            <span><i class="fa fa-database me-1"/>Size: <field name="file_size_display"/></span>
+                            <span class="text-muted"><field name="duration_display"/></span>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- Search View -->
+    <record id="view_data_sentinel_backup_search" model="ir.ui.view">
+        <field name="name">data.sentinel.backup.search</field>
+        <field name="model">data.sentinel.backup</field>
+        <field name="arch" type="xml">
+            <search string="Search Backups">
+                <field name="name"/>
+                <field name="db_name"/>
+                <field name="file_name"/>
+                <filter string="Full Instance Backups" name="filter_full" domain="[('backup_type', '=', 'full')]"/>
+                <filter string="Timely Snapshots" name="filter_timely" domain="[('backup_type', '=', 'timely')]"/>
+                <separator/>
+                <filter string="Completed &amp; Uploaded" name="filter_success" domain="[('state', '=', 'success')]"/>
+                <filter string="Failed" name="filter_failed" domain="[('state', '=', 'failed')]"/>
+                <filter string="Saved Locally" name="filter_local" domain="[('state', '=', 'local_only')]"/>
+                <separator/>
+                <filter string="Backup Type" name="group_by_type" context="{'group_by': 'backup_type'}"/>
+                <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                <filter string="Creation Date" name="group_by_date" context="{'group_by': 'create_date:day'}"/>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_data_sentinel_backup" model="ir.actions.act_window">
+        <field name="name">Backup History &amp; Logs</field>
+        <field name="res_model">data.sentinel.backup</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No backup records found yet!
+            </p>
+            <p>
+                Data Sentinel automatically captures full instance backups at midnight and timely snapshots during working hours to Nextcloud.
+            </p>
+        </field>
+    </record>
+</odoo>

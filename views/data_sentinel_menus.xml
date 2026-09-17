@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Top-level Application Menu -->
+    <menuitem id="menu_data_sentinel_root"
+              name="Data Sentinel"
+              sequence="110"
+              web_icon="data_sentinel,static/description/icon.png"
+              groups="group_data_sentinel_user"/>
+
+    <!-- Main Backups Menu -->
+    <menuitem id="menu_data_sentinel_backups"
+              name="Backups &amp; Logs"
+              parent="menu_data_sentinel_root"
+              action="action_data_sentinel_backup"
+              sequence="10"
+              groups="group_data_sentinel_user"/>
+
+    <!-- Configuration Menu -->
+    <menuitem id="menu_data_sentinel_config"
+              name="Configuration"
+              parent="menu_data_sentinel_root"
+              sequence="90"
+              groups="group_data_sentinel_manager"/>
+
+    <menuitem id="menu_data_sentinel_settings"
+              name="Settings"
+              parent="menu_data_sentinel_config"
+              action="action_data_sentinel_config_settings"
+              sequence="10"
+              groups="group_data_sentinel_manager"/>
+</odoo>

@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_data_sentinel" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.data_sentinel</field>
+        <field name="model">res.config.settings</field>
+        <field name="priority" eval="90"/>
+        <field name="inherit_id" ref="base_setup.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app data-string="Data Sentinel" string="Data Sentinel" name="data_sentinel">
+                    
+                    <!-- 1. NEXTCLOUD WEBDAV INTEGRATION -->
+                    <block title="Nextcloud WebDAV Storage Configuration" name="nextcloud_config_block">
+                        <setting id="nextcloud_url_setting" help="Specify the WebDAV endpoint URL for Nextcloud (e.g. https://domain.com/remote.php/dav/files/username).">
+                            <field name="data_sentinel_nextcloud_url" placeholder="https://vmi3020185.contaboserver.net/remote.php/dav/files/admin"/>
+                        </setting>
+                        <setting id="nextcloud_auth_setting" help="Nextcloud user credentials or generated App Password.">
+                            <div class="content-group">
+                                <div class="row mt16">
+                                    <label for="data_sentinel_nextcloud_user" class="col-lg-3 o_light_label" string="Username"/>
+                                    <field name="data_sentinel_nextcloud_user" class="col-lg-9"/>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="data_sentinel_nextcloud_password" class="col-lg-3 o_light_label" string="Password"/>
+                                    <field name="data_sentinel_nextcloud_password" password="True" class="col-lg-9"/>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="data_sentinel_nextcloud_root_dir" class="col-lg-3 o_light_label" string="Root Directory"/>
+                                    <field name="data_sentinel_nextcloud_root_dir" class="col-lg-9"/>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="data_sentinel_verify_ssl" class="col-lg-3 o_light_label" string="Verify SSL"/>
+                                    <field name="data_sentinel_verify_ssl" class="col-lg-9"/>
+                                </div>
+                                <div class="mt16">
+                                    <button name="action_test_nextcloud_connection" type="object"
+                                            string="Test Nextcloud Connection" class="btn btn-primary"
+                                            icon="fa-plug"/>
+                                </div>
+                            </div>
+                        </setting>
+                    </block>
+
+                    <!-- 2. FULL INSTANCE BACKUP SCHEDULER -->
+                    <block title="Daily Full Instance Backup (Midnight)" name="full_backup_block">
+                        <setting id="full_backup_active_setting" help="Automatically archive Postgres DB, Filestore, and Custom Addons every day at midnight.">
+                            <field name="data_sentinel_full_active"/>
+                            <div class="content-group" invisible="not data_sentinel_full_active">
+                                <div class="row mt8">
+                                    <label for="data_sentinel_full_time" class="col-lg-4 o_light_label" string="Run Time (24h)"/>
+                                    <field name="data_sentinel_full_time" widget="float_time" class="col-lg-8"/>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="data_sentinel_full_retention_days" class="col-lg-4 o_light_label" string="Cloud Retention (Days)"/>
+                                    <field name="data_sentinel_full_retention_days" class="col-lg-8"/>
+                                </div>
+                                <div class="row mt8">
+                                    <span class="col-lg-4 o_light_label">Included Content</span>
+                                    <div class="col-lg-8">
+                                        <div><field name="data_sentinel_full_include_db"/> Database (pg_dump)</div>
+                                        <div><field name="data_sentinel_full_include_filestore"/> Odoo Filestore</div>
+                                        <div><field name="data_sentinel_full_include_addons"/> Custom Addons</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </setting>
+                    </block>
+
+                    <!-- 3. TIMELY SNAPSHOT BACKUP SCHEDULER -->
+                    <block title="Timely Snapshot Backups (Working Hours)" name="timely_backup_block">
+                        <setting id="timely_backup_active_setting" help="Execute fast database and filestore snapshots at regular intervals during working hours.">
+                            <field name="data_sentinel_timely_active"/>
+                            <div class="content-group" invisible="not data_sentinel_timely_active">
+                                <div class="row mt8">
+                                    <label for="data_sentinel_timely_interval_hours" class="col-lg-4 o_light_label" string="Interval (Hours)"/>
+                                    <field name="data_sentinel_timely_interval_hours" class="col-lg-8"/>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="data_sentinel_timely_start_hour" class="col-lg-4 o_light_label" string="Window Start (e.g. 5 AM)"/>
+                                    <field name="data_sentinel_timely_start_hour" widget="float_time" class="col-lg-8"/>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="data_sentinel_timely_end_hour" class="col-lg-4 o_light_label" string="Window End (e.g. 8 PM)"/>
+                                    <field name="data_sentinel_timely_end_hour" widget="float_time" class="col-lg-8"/>
+                                </div>
+                                <div class="row mt8">
+                                    <label for="data_sentinel_timely_retention_days" class="col-lg-4 o_light_label" string="Cloud Retention (Days)"/>
+                                    <field name="data_sentinel_timely_retention_days" class="col-lg-8"/>
+                                </div>
+                                <div class="row mt8">
+                                    <span class="col-lg-4 o_light_label">Included Content</span>
+                                    <div class="col-lg-8">
+                                        <div><field name="data_sentinel_timely_include_db"/> Database</div>
+                                        <div><field name="data_sentinel_timely_include_filestore"/> Filestore</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </setting>
+                    </block>
+
+                    <!-- 4. LOCAL STORAGE OPTIONS -->
+                    <block title="Local Storage Retention" name="local_storage_block">
+                        <setting id="local_storage_setting" help="Keep local backup copies on the server filesystem in addition to Nextcloud.">
+                            <field name="data_sentinel_keep_local_copy"/>
+                            <div class="content-group" invisible="not data_sentinel_keep_local_copy">
+                                <div class="row mt8">
+                                    <label for="data_sentinel_local_retention_count" class="col-lg-4 o_light_label" string="Keep Last N Local Files"/>
+                                    <field name="data_sentinel_local_retention_count" class="col-lg-8"/>
+                                </div>
+                            </div>
+                        </setting>
+                    </block>
+
+                </app>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Settings Action -->
+    <record id="action_data_sentinel_config_settings" model="ir.actions.act_window">
+        <field name="name">Settings</field>
+        <field name="res_model">res.config.settings</field>
+        <field name="view_mode">form</field>
+        <field name="target">current</field>
+        <field name="context">{'module': 'data_sentinel', 'bin_size': False}</field>
+    </record>
+</odoo>

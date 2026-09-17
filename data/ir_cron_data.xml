@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Daily Full Instance Backup (Midnight) -->
+        <record id="ir_cron_data_sentinel_full_backup" model="ir.cron">
+            <field name="name">Data Sentinel: Daily Full Instance Backup (Midnight)</field>
+            <field name="model_id" ref="model_data_sentinel_backup"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_full_backup()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="active" eval="True"/>
+        </record>
+
+        <!-- Timely Snapshot Backup (Every 1 hour trigger, evaluates window & interval) -->
+        <record id="ir_cron_data_sentinel_timely_backup" model="ir.cron">
+            <field name="name">Data Sentinel: Timely Snapshot Backup (Working Hours)</field>
+            <field name="model_id" ref="model_data_sentinel_backup"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_timely_backup()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">hours</field>
+            <field name="active" eval="True"/>
+        </record>
+
+        <!-- Daily Retention Cleanup -->
+        <record id="ir_cron_data_sentinel_cleanup" model="ir.cron">
+            <field name="name">Data Sentinel: Retention Cleanup Old Backups</field>
+            <field name="model_id" ref="model_data_sentinel_backup"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_cleanup_old_backups()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="active" eval="True"/>
+        </record>
+    </data>
+</odoo>

@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_data_sentinel_backup_user,data.sentinel.backup.user,model_data_sentinel_backup,group_data_sentinel_user,1,0,0,0
+access_data_sentinel_backup_manager,data.sentinel.backup.manager,model_data_sentinel_backup,group_data_sentinel_manager,1,1,1,1
