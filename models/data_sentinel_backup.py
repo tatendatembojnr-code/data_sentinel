@@ -180,29 +180,49 @@ class DataSentinelBackup(models.Model):
             with zipfile.ZipFile(local_archive_path, "w", zipfile.ZIP_DEFLATED, allowZip64=True) as zip_out:
 
                 # -------------------------------------------------------------
-                # 1. DATABASE & FILESTORE DUMP (Odoo Native Engine)
+                # 1. DATABASE DUMP (Direct PostgreSQL pg_dump)
                 # -------------------------------------------------------------
                 if self.include_db:
-                    self._append_log("Dumping database and filestore via Odoo native service...")
-                    backup_format = "zip" if self.include_filestore else "sql"
-                    with tempfile.NamedTemporaryFile(suffix=f".{backup_format}", delete=False) as odoo_tmp:
-                        odoo_tmp_path = odoo_tmp.name
-                    try:
-                        with open(odoo_tmp_path, "wb") as f_stream:
-                            odoo.service.db.dump_db(db_name, f_stream, backup_format=backup_format)
-                        
-                        if backup_format == "zip":
-                            with zipfile.ZipFile(odoo_tmp_path, "r") as inner_zip:
-                                for member in inner_zip.namelist():
-                                    zip_out.writestr(member, inner_zip.read(member))
-                            self._append_log("Database dump and filestore bundled successfully.")
-                        else:
-                            zip_out.write(odoo_tmp_path, "dump.sql")
-                            self._append_log("Database SQL dump bundled successfully.")
-                    finally:
-                        if os.path.exists(odoo_tmp_path):
-                            os.remove(odoo_tmp_path)
-                elif self.include_filestore:
+                    self._append_log("Dumping PostgreSQL database using pg_dump...")
+                    db_dump_file = os.path.join(temp_dir, "dump.sql")
+                    cmd = ["pg_dump", "--no-owner", db_name]
+                    env_vars = os.environ.copy()
+                    
+                    db_user = odoo.tools.config.get("db_user")
+                    if db_user:
+                        cmd.extend(["-U", str(db_user)])
+                        env_vars["PGUSER"] = str(db_user)
+
+                    db_host = odoo.tools.config.get("db_host")
+                    if db_host:
+                        cmd.extend(["-h", str(db_host)])
+                        env_vars["PGHOST"] = str(db_host)
+
+                    db_port = odoo.tools.config.get("db_port")
+                    if db_port:
+                        cmd.extend(["-p", str(db_port)])
+                        env_vars["PGPORT"] = str(db_port)
+
+                    db_password = odoo.tools.config.get("db_password")
+                    if db_password:
+                        env_vars["PGPASSWORD"] = str(db_password)
+
+                    with open(db_dump_file, "wb") as f_out:
+                        p = subprocess.Popen(cmd, stdout=f_out, stderr=subprocess.PIPE, env=env_vars)
+                        _, err = p.communicate()
+                        if p.returncode != 0:
+                            raise Exception(f"pg_dump error: {err.decode('utf-8', errors='ignore')}")
+
+                    zip_out.write(db_dump_file, "dump.sql")
+                    db_size_mb = os.path.getsize(db_dump_file) / (1024 * 1024)
+                    self._append_log(f"Database dump complete ({db_size_mb:.2f} MB).")
+                    if os.path.exists(db_dump_file):
+                        os.remove(db_dump_file)
+
+                # -------------------------------------------------------------
+                # 2. FILESTORE ARCHIVING
+                # -------------------------------------------------------------
+                if self.include_filestore:
                     self._append_log("Archiving Odoo filestore...")
                     filestore_path = odoo.tools.config.filestore(db_name)
                     if not os.path.exists(filestore_path):
