@@ -64,12 +64,6 @@ class ResConfigSettings(models.TransientModel):
         config_parameter="data_sentinel.full_include_addons",
         default=True,
     )
-    data_sentinel_full_retention_days = fields.Integer(
-        string="Full Backup Cloud Retention (Days)",
-        config_parameter="data_sentinel.full_retention_days",
-        default=30,
-        help="Delete full backups on Nextcloud older than this number of days (0 = Keep forever).",
-    )
 
     # Timely Snapshot Backup Scheduler (Working Hours)
     data_sentinel_timely_active = fields.Boolean(
@@ -105,24 +99,51 @@ class ResConfigSettings(models.TransientModel):
         config_parameter="data_sentinel.timely_include_filestore",
         default=True,
     )
+
+    # Retention Policies (Cloud & Local Server)
+    data_sentinel_cloud_retention_active = fields.Boolean(
+        string="Enable Cloud Retention Policy",
+        config_parameter="data_sentinel.cloud_retention_active",
+        default=True,
+        help="Automatically purge expired backups from Nextcloud storage.",
+    )
+    data_sentinel_full_retention_days = fields.Integer(
+        string="Full Backup Cloud Retention (Days)",
+        config_parameter="data_sentinel.full_retention_days",
+        default=30,
+        help="Delete full backups on Nextcloud older than this number of days (0 = Keep forever).",
+    )
     data_sentinel_timely_retention_days = fields.Integer(
         string="Snapshot Cloud Retention (Days)",
         config_parameter="data_sentinel.timely_retention_days",
-        default=14,
+        default=7,
         help="Delete snapshots on Nextcloud older than this number of days (0 = Keep forever).",
     )
 
-    # Local Retention
+    # Local Server Retention
     data_sentinel_keep_local_copy = fields.Boolean(
         string="Keep Local Copy on Server",
         config_parameter="data_sentinel.keep_local_copy",
         default=False,
         help="If disabled, backup files are deleted locally immediately after successful Nextcloud upload.",
     )
+    data_sentinel_local_retention_active = fields.Boolean(
+        string="Enable Local Server Retention Policy",
+        config_parameter="data_sentinel.local_retention_active",
+        default=True,
+        help="Automatically purge local server backup copies based on age and count limits.",
+    )
+    data_sentinel_local_retention_days = fields.Integer(
+        string="Local Server Retention (Days)",
+        config_parameter="data_sentinel.local_retention_days",
+        default=7,
+        help="Delete local server backup files older than this number of days (0 = No age limit).",
+    )
     data_sentinel_local_retention_count = fields.Integer(
-        string="Local Backups to Keep",
+        string="Max Local Backups to Keep",
         config_parameter="data_sentinel.local_retention_count",
         default=5,
+        help="Maximum number of recent local backup archives to keep on server disk.",
     )
 
     def action_test_nextcloud_connection(self):
@@ -161,3 +182,28 @@ class ResConfigSettings(models.TransientModel):
                     "sticky": True,
                 },
             }
+
+    def action_run_cleanup_now(self):
+        """Manually trigger immediate retention purge of expired cloud and local backups."""
+        self.ensure_one()
+        stats = self.env["data.sentinel.backup"]._run_retention_cleanup()
+
+        msg = (
+            f"Retention cleanup finished successfully.\n"
+            f"• Nextcloud Files Purged: {stats.get('cloud_deleted', 0)}\n"
+            f"• Local Server Files Purged: {stats.get('local_deleted', 0)}\n"
+            f"• Stale Records Cleaned: {stats.get('records_unlinked', 0)}"
+        )
+        if stats.get('errors'):
+            msg += f"\n• Warnings: {len(stats['errors'])}"
+
+        return {
+            "type": "ir.actions.client",
+            "tag": "display_notification",
+            "params": {
+                "title": "Retention Cleanup Complete",
+                "message": msg,
+                "type": "success" if not stats.get('errors') else "warning",
+                "sticky": False,
+            },
+        }

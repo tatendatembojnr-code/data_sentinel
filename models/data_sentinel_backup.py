@@ -155,6 +155,42 @@ class DataSentinelBackup(models.Model):
             self._append_log(f"Upload failed: {msg}")
             raise UserError(_("Nextcloud upload failed: %s") % msg)
 
+    def action_purge_backup(self):
+        """Permanently delete backup archive from Nextcloud and local server disk."""
+        nc_url = self.env["ir.config_parameter"].sudo().get_param("data_sentinel.nextcloud_url")
+        nc_user = self.env["ir.config_parameter"].sudo().get_param("data_sentinel.nextcloud_user")
+        nc_pass = self.env["ir.config_parameter"].sudo().get_param("data_sentinel.nextcloud_password")
+        verify_ssl = self.env["ir.config_parameter"].sudo().get_param("data_sentinel.verify_ssl") == "True"
+        client = NextcloudWebDAVClient(nc_url, nc_user, nc_pass, verify_ssl=verify_ssl) if nc_url and nc_user else None
+
+        for rec in self:
+            # Delete local file if present
+            if rec.local_path and os.path.exists(rec.local_path):
+                try:
+                    os.remove(rec.local_path)
+                except Exception as ex:
+                    _logger.warning("Failed deleting local backup file %s: %s", rec.local_path, str(ex))
+
+            # Delete Nextcloud remote file
+            if rec.nextcloud_path and client:
+                try:
+                    client.delete_file(rec.nextcloud_path)
+                except Exception as ex:
+                    _logger.warning("Failed deleting remote Nextcloud file %s: %s", rec.nextcloud_path, str(ex))
+
+            rec.unlink()
+
+        return {
+            "type": "ir.actions.client",
+            "tag": "display_notification",
+            "params": {
+                "title": "Backup Purged",
+                "message": "Backup record and all associated files have been permanently deleted from storage.",
+                "type": "info",
+                "sticky": False,
+            },
+        }
+
     def _execute_backup(self):
         """Main backup routine executing DB dump, filestore, custom addons, and Nextcloud WebDAV upload."""
         self.ensure_one()
@@ -406,48 +442,137 @@ class DataSentinelBackup(models.Model):
         backup_rec._execute_backup()
 
     @api.model
-    def _cron_cleanup_old_backups(self):
-        """Clean up expired backups on Nextcloud and local filesystem."""
+    def _run_retention_cleanup(self):
+        """Execute automated retention purge on Nextcloud remote files and local server filesystem."""
         config = self.env["ir.config_parameter"].sudo()
-        full_retention_days = int(config.get_param("data_sentinel.full_retention_days", 30))
-        timely_retention_days = int(config.get_param("data_sentinel.timely_retention_days", 14))
+
+        cloud_active = config.get_param("data_sentinel.cloud_retention_active", "True") == "True"
+        full_days = int(config.get_param("data_sentinel.full_retention_days", 30))
+        timely_days = int(config.get_param("data_sentinel.timely_retention_days", 7))
+
+        local_active = config.get_param("data_sentinel.local_retention_active", "True") == "True"
+        local_days = int(config.get_param("data_sentinel.local_retention_days", 7))
+        local_max_count = int(config.get_param("data_sentinel.local_retention_count", 5))
+
+        stats = {
+            "cloud_deleted": 0,
+            "local_deleted": 0,
+            "records_unlinked": 0,
+            "errors": [],
+        }
 
         nc_url = config.get_param("data_sentinel.nextcloud_url")
         nc_user = config.get_param("data_sentinel.nextcloud_user")
         nc_pass = config.get_param("data_sentinel.nextcloud_password")
         verify_ssl = config.get_param("data_sentinel.verify_ssl") == "True"
-        client = NextcloudWebDAVClient(nc_url, nc_user, nc_pass, verify_ssl=verify_ssl)
+        client = NextcloudWebDAVClient(nc_url, nc_user, nc_pass, verify_ssl=verify_ssl) if nc_url and nc_user else None
 
-        # 1. Cleanup expired Full Backups
-        if full_retention_days > 0:
-            cutoff = datetime.now() - timedelta(days=full_retention_days)
-            old_fulls = self.search([
-                ("backup_type", "=", "full"),
-                ("create_date", "<", cutoff),
-            ])
-            for b in old_fulls:
-                if b.nextcloud_path:
-                    client.delete_file(b.nextcloud_path)
-                if b.local_path and os.path.exists(b.local_path):
-                    try:
-                        os.remove(b.local_path)
-                    except Exception:
-                        pass
-                b.unlink()
+        # -------------------------------------------------------------
+        # 1. CLOUD RETENTION PURGE
+        # -------------------------------------------------------------
+        if cloud_active and client:
+            now = datetime.now()
+            # A. Expired Full Backups
+            if full_days > 0:
+                cutoff_full = now - timedelta(days=full_days)
+                expired_fulls = self.search([
+                    ("backup_type", "=", "full"),
+                    ("create_date", "<", cutoff_full),
+                    ("nextcloud_uploaded", "=", True),
+                ])
+                for rec in expired_fulls:
+                    if rec.nextcloud_path:
+                        try:
+                            if client.delete_file(rec.nextcloud_path):
+                                stats["cloud_deleted"] += 1
+                                rec.write({"nextcloud_uploaded": False, "nextcloud_path": False})
+                                rec._append_log(f"Retention policy: deleted from Nextcloud (age > {full_days} days).")
+                        except Exception as e:
+                            stats["errors"].append(str(e))
+                            _logger.warning("Retention error deleting cloud backup %s: %s", rec.name, str(e))
 
-        # 2. Cleanup expired Timely Backups
-        if timely_retention_days > 0:
-            cutoff = datetime.now() - timedelta(days=timely_retention_days)
-            old_timely = self.search([
-                ("backup_type", "=", "timely"),
-                ("create_date", "<", cutoff),
-            ])
-            for b in old_timely:
-                if b.nextcloud_path:
-                    client.delete_file(b.nextcloud_path)
-                if b.local_path and os.path.exists(b.local_path):
-                    try:
-                        os.remove(b.local_path)
-                    except Exception:
-                        pass
-                b.unlink()
+            # B. Expired Timely Backups
+            if timely_days > 0:
+                cutoff_timely = now - timedelta(days=timely_days)
+                expired_timely = self.search([
+                    ("backup_type", "=", "timely"),
+                    ("create_date", "<", cutoff_timely),
+                    ("nextcloud_uploaded", "=", True),
+                ])
+                for rec in expired_timely:
+                    if rec.nextcloud_path:
+                        try:
+                            if client.delete_file(rec.nextcloud_path):
+                                stats["cloud_deleted"] += 1
+                                rec.write({"nextcloud_uploaded": False, "nextcloud_path": False})
+                                rec._append_log(f"Retention policy: deleted from Nextcloud (age > {timely_days} days).")
+                        except Exception as e:
+                            stats["errors"].append(str(e))
+                            _logger.warning("Retention error deleting cloud snapshot %s: %s", rec.name, str(e))
+
+        # -------------------------------------------------------------
+        # 2. LOCAL SERVER RETENTION PURGE
+        # -------------------------------------------------------------
+        if local_active:
+            now = datetime.now()
+            # A. Purge by Age (Days)
+            if local_days > 0:
+                cutoff_local = now - timedelta(days=local_days)
+                expired_locals = self.search([
+                    ("create_date", "<", cutoff_local),
+                    ("local_path", "!=", False),
+                ])
+                for rec in expired_locals:
+                    if rec.local_path and os.path.exists(rec.local_path):
+                        try:
+                            os.remove(rec.local_path)
+                            stats["local_deleted"] += 1
+                            rec.local_path = False
+                            rec._append_log(f"Retention policy: deleted local file from server (age > {local_days} days).")
+                        except Exception as e:
+                            stats["errors"].append(str(e))
+                            _logger.warning("Retention error deleting local file %s: %s", rec.local_path, str(e))
+                    elif rec.local_path:
+                        rec.local_path = False
+
+            # B. Purge by Max Count (Keep only the most recent N local copies)
+            if local_max_count > 0:
+                all_with_local = self.search([
+                    ("local_path", "!=", False),
+                ], order="create_date desc, id desc")
+
+                # Keep top local_max_count, purge the rest
+                if len(all_with_local) > local_max_count:
+                    excess_locals = all_with_local[local_max_count:]
+                    for rec in excess_locals:
+                        if rec.local_path and os.path.exists(rec.local_path):
+                            try:
+                                os.remove(rec.local_path)
+                                stats["local_deleted"] += 1
+                                rec.local_path = False
+                                rec._append_log(f"Retention policy: deleted excess local file (exceeded max count {local_max_count}).")
+                            except Exception as e:
+                                stats["errors"].append(str(e))
+                        elif rec.local_path:
+                            rec.local_path = False
+
+        # -------------------------------------------------------------
+        # 3. CLEANUP ORPHANED / STALE DATABASE RECORDS
+        # -------------------------------------------------------------
+        stale_cutoff = datetime.now() - timedelta(days=max(full_days or 30, timely_days or 14, 30))
+        stale_records = self.search([
+            ("create_date", "<", stale_cutoff),
+            ("nextcloud_uploaded", "=", False),
+            ("local_path", "=", False),
+        ])
+        if stale_records:
+            stats["records_unlinked"] = len(stale_records)
+            stale_records.unlink()
+
+        _logger.info("[DataSentinel] Retention Cleanup completed: %s", stats)
+        return stats
+
+    @api.model
+    def _cron_cleanup_old_backups(self):
+        """Clean up expired backups on Nextcloud and local filesystem."""
+        return self._run_retention_cleanup()

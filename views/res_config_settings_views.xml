@@ -51,10 +51,6 @@
                                     <field name="data_sentinel_full_time" widget="float_time" class="col-lg-8"/>
                                 </div>
                                 <div class="row mt8">
-                                    <label for="data_sentinel_full_retention_days" class="col-lg-4 o_light_label" string="Cloud Retention (Days)"/>
-                                    <field name="data_sentinel_full_retention_days" class="col-lg-8"/>
-                                </div>
-                                <div class="row mt8">
                                     <span class="col-lg-4 o_light_label">Included Content</span>
                                     <div class="col-lg-8">
                                         <div><field name="data_sentinel_full_include_db"/> Database (pg_dump)</div>
@@ -84,10 +80,6 @@
                                     <field name="data_sentinel_timely_end_hour" widget="float_time" class="col-lg-8"/>
                                 </div>
                                 <div class="row mt8">
-                                    <label for="data_sentinel_timely_retention_days" class="col-lg-4 o_light_label" string="Cloud Retention (Days)"/>
-                                    <field name="data_sentinel_timely_retention_days" class="col-lg-8"/>
-                                </div>
-                                <div class="row mt8">
                                     <span class="col-lg-4 o_light_label">Included Content</span>
                                     <div class="col-lg-8">
                                         <div><field name="data_sentinel_timely_include_db"/> Database</div>
@@ -98,15 +90,48 @@
                         </setting>
                     </block>
 
-                    <!-- 4. LOCAL STORAGE OPTIONS -->
-                    <block title="Local Storage Retention" name="local_storage_block">
-                        <setting id="local_storage_setting" help="Keep local backup copies on the server filesystem in addition to Nextcloud.">
-                            <field name="data_sentinel_keep_local_copy"/>
-                            <div class="content-group" invisible="not data_sentinel_keep_local_copy">
+                    <!-- 4. RETENTION & CLEANUP LIFECYCLE MANAGEMENT -->
+                    <block title="Retention &amp; Deletion Lifecycle (Nextcloud &amp; Server)" name="retention_management_block">
+                        <!-- Cloud Retention -->
+                        <setting id="cloud_retention_setting" help="Configure how long backups remain stored in Nextcloud before automatic deletion.">
+                            <div><field name="data_sentinel_cloud_retention_active"/> Enable Nextcloud Cloud Retention Policy</div>
+                            <div class="content-group mt8" invisible="not data_sentinel_cloud_retention_active">
                                 <div class="row mt8">
-                                    <label for="data_sentinel_local_retention_count" class="col-lg-4 o_light_label" string="Keep Last N Local Files"/>
-                                    <field name="data_sentinel_local_retention_count" class="col-lg-8"/>
+                                    <label for="data_sentinel_full_retention_days" class="col-lg-5 o_light_label" string="Full Backups Cloud Retention (Days)"/>
+                                    <field name="data_sentinel_full_retention_days" class="col-lg-7"/>
                                 </div>
+                                <div class="row mt8">
+                                    <label for="data_sentinel_timely_retention_days" class="col-lg-5 o_light_label" string="Snapshot Backups Cloud Retention (Days)"/>
+                                    <field name="data_sentinel_timely_retention_days" class="col-lg-7"/>
+                                </div>
+                            </div>
+                        </setting>
+
+                        <!-- Local Server Retention -->
+                        <setting id="local_storage_retention_setting" help="Configure local server backup storage and automatic deletion policies.">
+                            <div><field name="data_sentinel_keep_local_copy"/> Keep Local Archive on Server</div>
+                            <div class="content-group mt8" invisible="not data_sentinel_keep_local_copy">
+                                <div><field name="data_sentinel_local_retention_active"/> Enable Server Retention Auto-Cleanup</div>
+                                <div class="content-group mt8" invisible="not data_sentinel_local_retention_active">
+                                    <div class="row mt8">
+                                        <label for="data_sentinel_local_retention_days" class="col-lg-5 o_light_label" string="Delete Local Files Older Than (Days)"/>
+                                        <field name="data_sentinel_local_retention_days" class="col-lg-7"/>
+                                    </div>
+                                    <div class="row mt8">
+                                        <label for="data_sentinel_local_retention_count" class="col-lg-5 o_light_label" string="Keep Max Recent Copies (Count)"/>
+                                        <field name="data_sentinel_local_retention_count" class="col-lg-7"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </setting>
+
+                        <!-- Immediate Purge Button -->
+                        <setting id="run_cleanup_now_setting" help="Instantly purge expired backups on both Nextcloud and the local server based on configured retention policies.">
+                            <div class="mt8">
+                                <button name="action_run_cleanup_now" type="object"
+                                        string="Purge Expired Backups Now" class="btn btn-secondary"
+                                        icon="fa-trash"
+                                        confirm="Are you sure you want to run the retention policy cleanup now? This will permanently delete expired backups from Nextcloud and the local server."/>
                             </div>
                         </setting>
                     </block>
