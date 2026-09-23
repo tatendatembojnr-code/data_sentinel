@@ -183,6 +183,33 @@ class ResConfigSettings(models.TransientModel):
                 },
             }
 
+    def action_view_backups(self):
+        """Open the list of backups and audit logs from settings."""
+        action = self.env.ref("data_sentinel.action_data_sentinel_backup").read()[0]
+        return action
+
+    def action_trigger_instant_backup(self):
+        """Trigger an instant backup now from settings."""
+        self.ensure_one()
+        backup = self.env["data.sentinel.backup"].create({
+            "backup_type": "timely",
+            "trigger_source": "manual",
+            "include_db": True,
+            "include_filestore": True,
+            "include_addons": False,
+        })
+        backup.action_run_backup()
+        return {
+            "type": "ir.actions.client",
+            "tag": "display_notification",
+            "params": {
+                "title": "Data Sentinel Backup",
+                "message": f"Backup '{backup.name}' completed with status: {backup.state}",
+                "type": "success" if backup.state == "success" else "warning",
+                "sticky": False,
+            },
+        }
+
     def action_run_cleanup_now(self):
         """Manually trigger immediate retention purge of expired cloud and local backups."""
         self.ensure_one()
@@ -207,3 +234,4 @@ class ResConfigSettings(models.TransientModel):
                 "sticky": False,
             },
         }
+
