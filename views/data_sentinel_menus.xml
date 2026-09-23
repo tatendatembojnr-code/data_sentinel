@@ -1,31 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Top-level Application Menu -->
-    <menuitem id="menu_data_sentinel_root"
-              name="Data Sentinel"
-              sequence="110"
-              web_icon="data_sentinel,static/description/icon.png"
-              groups="group_data_sentinel_user"/>
-
-    <!-- Main Backups Menu -->
-    <menuitem id="menu_data_sentinel_backups"
-              name="Backups &amp; Logs"
-              parent="menu_data_sentinel_root"
+    <!-- Technical Menu Item under Settings / Technical / Database Structure (Hidden from App Switcher grid) -->
+    <menuitem id="menu_data_sentinel_technical_backups"
+              name="Data Sentinel Backups"
+              parent="base.menu_custom"
               action="action_data_sentinel_backup"
-              sequence="10"
+              sequence="95"
               groups="group_data_sentinel_user"/>
-
-    <!-- Configuration Menu -->
-    <menuitem id="menu_data_sentinel_config"
-              name="Configuration"
-              parent="menu_data_sentinel_root"
-              sequence="90"
-              groups="group_data_sentinel_manager"/>
-
-    <menuitem id="menu_data_sentinel_settings"
-              name="Settings"
-              parent="menu_data_sentinel_config"
-              action="action_data_sentinel_config_settings"
-              sequence="10"
-              groups="group_data_sentinel_manager"/>
 </odoo>

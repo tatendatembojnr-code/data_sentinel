@@ -9,6 +9,21 @@
             <xpath expr="//form" position="inside">
                 <app data-string="Data Sentinel" string="Data Sentinel" name="data_sentinel">
                     
+                    <!-- 0. BACKUP STATUS & QUICK ACTIONS -->
+                    <block title="Data Sentinel Status &amp; Logs" name="status_quick_actions_block">
+                        <setting id="quick_actions_setting" help="View complete backup history, inspect real-time execution logs, or trigger an instant snapshot to Nextcloud now.">
+                            <div class="mt8 d-flex gap-2 flex-wrap">
+                                <button name="action_view_backups" type="object"
+                                        string="View All Backups &amp; Audit Logs" class="btn btn-primary"
+                                        icon="fa-list"/>
+                                <button name="action_trigger_instant_backup" type="object"
+                                        string="Run Instant Snapshot Now" class="btn btn-secondary"
+                                        icon="fa-cloud-upload"
+                                        confirm="Trigger an immediate snapshot backup to Nextcloud now?"/>
+                            </div>
+                        </setting>
+                    </block>
+
                     <!-- 1. NEXTCLOUD WEBDAV INTEGRATION -->
                     <block title="Nextcloud WebDAV Storage Configuration" name="nextcloud_config_block">
                         <setting id="nextcloud_url_setting" help="Specify the WebDAV endpoint URL for Nextcloud (e.g. https://domain.com/remote.php/dav/files/username).">
